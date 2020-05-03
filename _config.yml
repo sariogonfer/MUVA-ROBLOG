@@ -44,11 +44,5 @@ plugins:
 #   - vendor/ruby/
 
 collections:
-  articles:
-    output: true
-  letters:
-    output: true
-  speeches:
-    output: true
-  tutorials:
+  follow-line:
     output: true

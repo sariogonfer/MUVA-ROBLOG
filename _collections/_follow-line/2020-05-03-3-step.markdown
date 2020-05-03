@@ -1,0 +1,109 @@
+---
+layout: post
+title:  "Third step. FernandoAIonso."
+date:   20120-05-01 00:00:00 +0200
+image: https://i.ytimg.com/vi/s5qnuPEzf2w/maxresdefault.jpg
+rating: 5
+---
+
+**IMPORTANT: This step was implemented using the online platform. At the of write this post, the platform is unavailable. For that reason, image for this steam cannot be attached.**
+
+To improve our driver, we are going to implement a proportional?derivative controller (PID controller) to calculate the value ov *W* and *V*. 
+
+The new driver, *FernandoAIonso*, it is initialized with multiple variables that defines its drive-style. This variable defines the constants used by the PID controller. Also, an array to storage the last errors is implemented. This array stores the last 3 errors for debug purposes, but only the last one is used to calculate the derivate of the error.
+
+```python
+def calc_mid_line(img):
+    t = (img == 255)
+    a = t.argmax(axis=1) 
+    b = t[:,::-1].argmax(axis=1)
+    mask = np.logical_or(a == 0, b ==0)
+    
+    return (a[~mask] + (640 - b[~mask])) / 2
+
+class FernandoAIonso(Driver):    
+    def __init__(self, algorithm, motors):
+        self.KpW = 0.02
+        self.KdW = 2
+        self.KpV = 0.08
+        self.KdV = 0.1
+        self.prev_errs = np.zeros(3)
+        self.d_err = 0
+        self.MAX_SPEED = 25
+        
+        super(FernandoAIonso, self).__init__(algorithm, motors)
+        
+    def update_view(self):
+        def _put_text(img, msg, orig):
+            im = cv2.putText(
+                img, msg, orig, 
+                cv2.FONT_HERSHEY_SIMPLEX ,  
+                1, (0, 255, 0), 
+                1, cv2.LINE_AA
+            ) 
+            return im
+            
+        r_i = cv2.cvtColor(
+            self.filtered_image, cv2.COLOR_GRAY2BGR
+        )
+        r_i[-200] = 255
+        l_i = _put_text(self.image.copy(), 'V: {}'.format(self.V), (10, 30))
+        l_i = _put_text(l_i, 'W: {}'.format(self.W), (10, 60))
+        l_i = _put_text(l_i, 'err: {}'.format(self.err), (10, 90))
+        l_i = _put_text(l_i, 'd_err: {}'.format(self.d_err), (10, 120))
+        
+        self.algorithm.set_threshold_image(
+            np.hstack((l_i, r_i))
+        )
+        
+    def _calc_line(self):
+        self.line = calc_mid_line(self.filtered_image)
+        
+    def _calc_error(self):
+        err = 320 - self.line[4] if len(self.line) else self.err
+        self.prev_errs[:-1] = self.prev_errs[1:]
+        self.prev_errs[-1] = np.absolute(err)
+        self.d_err = (
+            (self.prev_errs[-1] - self.prev_errs[0])
+        )
+        
+        self.err = err
+        
+    def _calc_V(self):
+        v = np.clip( 
+            self.MAX_SPEED - (np.abs(self.err) * self.KpV) -
+            self.d_err * self.KdV,
+            5, self.MAX_SPEED
+        )
+        
+        return v
+    
+    def _calc_W(self):
+        p = self.err * self.KpW
+        d = np.sign(self.err) * self.d_err * self.KdW
+        w = np.clip(p + d, -2, 2)
+        sys.stdout.write(
+            '\r P: {:6.5f} D: {:6.5f} W: {:6.5f}'.format(p, d, w))
+        
+        return w
+        
+    def react(self):
+        self._calc_line()
+        self._calc_error()
+        self.V = self._calc_V()
+        self.W = self._calc_W()
+        
+fl.algorithm.driver = FernandoAIonso(fl.algorithm, fl.motors)
+
+def execute(self):
+    try:
+        self.driver.on_new_image()
+    except Exception as e:
+        sys.stdout.write('\r' + str(e))
+    
+stop_car()
+fl.setExecute(execute)
+```?
+
+
+
