@@ -1,9 +1,10 @@
 ---
 layout: post
 title:  "Second step. The driver."
-date:   20120-05-01 00:00:00 +0200
-image: https://i.ytimg.com/vi/s5qnuPEzf2w/maxresdefault.jpg
+date:   2020-05-01 00:00:00 +0200
+image: /MUVA-ROBLOG/assets/images/follow-line/main.png
 rating: 5
+description: Second step. The driver.
 ---
 
 **IMPORTANT: This step was implemented using the online platform. At the of write this post, the platform is unavailable. For that reason, image for this steam cannot be attached.**
@@ -80,10 +81,12 @@ class Driver(object):
     def react(self):
         pass    
 ```
+
 Using this class as base, we are going to define our first driver: *AIkkonen.*
 
+
 ```python
-class AIkkonen(Driver):    
+class AIkkonen(Driver):
     def _calc_error(self):
         try:
             aux = np.where(self.filtered_image[260] == 255)[0]
@@ -99,7 +102,7 @@ class AIkkonen(Driver):
 
 This driver is very simple and slow, but it can do a lap to the circle. The multipliers are calculated trial-and-error basis.
 
-The way to activate a driver is the following: 
+The way to activate a driver is the following:
 
 ```python
 fl.algorithm.driver = AIkkonen(fl.algorithm, fl.motors)
@@ -115,6 +118,3 @@ fl.setExecute(execute)
 ```
 
 In the next steps, we are going to improve this driver.
-
-
-

@@ -1,9 +1,10 @@
 ---
 layout: post
 title:  "Third step. FernandoAIonso."
-date:   20120-05-01 00:00:00 +0200
-image: https://i.ytimg.com/vi/s5qnuPEzf2w/maxresdefault.jpg
+date:   2020-05-02 00:00:00 +0200
+image: /MUVA-ROBLOG/assets/images/follow-line/main.png
 rating: 5
+description: Third step. FernandoAIonso.
 ---
 
 **IMPORTANT: This step was implemented using the online platform. At the of write this post, the platform is unavailable. For that reason, image for this steam cannot be attached.**
