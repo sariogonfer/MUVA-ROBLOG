@@ -4,7 +4,6 @@ title:  "Follow line. First step."
 date:   2019-10-18 19:20:33 +0200
 image: /MUVA-ROBLOG/assets/images/follow-line/main.png
 rating: 5
-description: Follow line. First step.
 ---
 
 **IMPORTANT: This step was implemented using the online platform. At the of write this post, the platform is unavailable. For that reason, image for this steam cannot be attached.**

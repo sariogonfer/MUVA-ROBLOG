@@ -4,25 +4,24 @@ title:  "Third step. FernandoAIonso."
 date:   2020-05-02 00:00:00 +0200
 image: /MUVA-ROBLOG/assets/images/follow-line/main.png
 rating: 5
-description: Third step. FernandoAIonso.
 ---
 
 **IMPORTANT: This step was implemented using the online platform. At the of write this post, the platform is unavailable. For that reason, image for this steam cannot be attached.**
 
-To improve our driver, we are going to implement a proportional?derivative controller (PID controller) to calculate the value ov *W* and *V*. 
+To improve our driver, we are going to implement a proportional-derivative controller (PD controller) to calculate the value ov *W* and *V*. 
 
-The new driver, *FernandoAIonso*, it is initialized with multiple variables that defines its drive-style. This variable defines the constants used by the PID controller. Also, an array to storage the last errors is implemented. This array stores the last 3 errors for debug purposes, but only the last one is used to calculate the derivate of the error.
+The new driver, *FernandoAIonso*, it is initialized with multiple variables that defines its drive-style. This variable defines the constants used by the PD controller. Also, an array to storage the last errors is implemented. This array stores the last 3 errors for debug purposes, but only the last one is used to calculate the derivate of the error.
 
 ```python
 def calc_mid_line(img):
     t = (img == 255)
-    a = t.argmax(axis=1) 
+    a = t.argmax(axis=1)
     b = t[:,::-1].argmax(axis=1)
     mask = np.logical_or(a == 0, b ==0)
-    
+
     return (a[~mask] + (640 - b[~mask])) / 2
 
-class FernandoAIonso(Driver):    
+class FernandoAIonso(Driver):
     def __init__(self, algorithm, motors):
         self.KpW = 0.02
         self.KdW = 2
