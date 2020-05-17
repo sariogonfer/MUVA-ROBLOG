@@ -1,0 +1,9 @@
+---
+layout: post
+title:  "Cat and mouse."
+date:   2019-10-18 19:20:33 +0200
+image: /MUVA-ROBLOG/assets/images/drones-cat-mouse/main.jpg
+rating: 5
+---
+
+Work in progress

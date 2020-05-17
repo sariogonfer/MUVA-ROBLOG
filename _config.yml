@@ -46,3 +46,5 @@ plugins:
 collections:
   follow-line:
     output: true
+  drones-cat-mouse:
+    output: true
