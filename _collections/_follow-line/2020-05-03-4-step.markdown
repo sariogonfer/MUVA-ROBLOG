@@ -18,10 +18,10 @@ def is_curve(line):
 
 class AIrtonSenna(Driver):
     def __init__(self, algorithm, motors):
-        self.KpW = [0.01, 0.02]
-        self.KdW = [0.01, 0.01]
-        self.KpV = [-0.3, -0.02]
-        self.KdV = [0.05, -0.02]
+        self.KpW = [0.015, 0.015]
+        self.KdW = [0.01, 0.02]
+        self.KpV = [-0.1, -0.04]
+        self.KdV = [0.2, -0.02]
         self.MAX_SPEED = [40, 18]
         self.d_err = 0
         self.prev_times = np.zeros(3)
@@ -116,5 +116,8 @@ class AIrtonSenna(Driver):
         self.W = self._calc_W()
 ```
 
-(work in progress)
+AIrtonSenna can to detect when the car is tracking a curve or is in a rect. On this way, it can calculate the W and V in a differente way.
 
+Next video shows this driver doing a entire lap to the circuit.
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/Fk-SKJxWCxw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
