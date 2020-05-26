@@ -48,3 +48,5 @@ collections:
     output: true
   drones-cat-mouse:
     output: true
+  reconstruction:
+    output: true

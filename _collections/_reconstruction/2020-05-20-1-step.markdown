@@ -1,0 +1,95 @@
+---
+layout: post
+title:  "3D reconstruction."
+date:   2020-05-20 00:00:00 +0100
+image: /MUVA-ROBLOG/assets/images/3d-reconstruction/main.png
+rating: 5
+---
+
+
+```python
+def __init__(self, cameraL, cameraR, point, n_sample=None, scale=1, block=15):
+
+	...
+
+	self.N_SAMPLE = n_sample
+	self.SCALE = scale
+	self.BLOCK = block
+```
+
+```python
+n_sample = None
+scale = 1
+block = 15
+if len(sys.argv) >= 3:
+n_sample = int(sys.argv[2])
+if len(sys.argv) >= 4:
+scale = int(sys.argv[3])
+if len(sys.argv) >= 5:
+block = int(sys.argv[4])
+
+algorithm=MyAlgorithm(cameraL, cameraR, publishPoint, n_sample, scale, block)
+```
+
+
+```python
+def algorithm(self):
+        #GETTING THE IMAGES
+        start_time = time.time()
+        print('Procesing images...')
+        def process_img(i):
+            aux = cv2.cvtColor(i, cv2.COLOR_BGR2HSV)
+            aux = cv2.Canny(aux, 200, 200)
+            kernel = np.ones((5, 5),np.uint8)
+            aux = cv2.dilate(aux,kernel,iterations = 1)
+            return aux
+        
+        imgL_raw = self.getImage('left')
+        h, w, _ = np.array(imgL_raw.shape) / self.SCALE
+        imgL_raw = cv2.resize(imgL_raw, (w, h))
+        imgR_raw = self.getImage('right')
+        imgR_raw = cv2.resize(imgR_raw, (w, h))
+        
+        mask = process_img(imgL_raw)
+        
+        p_l = [[], []]
+        p_r = [[], []]
+        color = []        
+        l = list(zip(*np.where(mask == 255)))
+        
+        print('Original sample: {}.'.format(len(l)))
+        print('Reduced sample: {}.'.format(self.N_SAMPLE or len(l)))
+        
+        l = random.sample(l, self.N_SAMPLE or len(l))
+        d = defaultdict(list)
+        for y, x in l:
+            d[y].append(x)
+        for y, x_list in d.items():
+            if y < self.BLOCK or y > (h - self.BLOCK):
+                continue
+            for x in x_list:
+                if x < self.BLOCK or x > (w - self.BLOCK):
+                    continue
+                t = imgL_raw[y - self.BLOCK:y + self.BLOCK, x - self.BLOCK:x + self.BLOCK]
+                aux = imgR_raw[y - self.BLOCK:y + self.BLOCK]
+                p_l[0].append(h - y)
+                p_l[1].append(x)
+                p_r[0].append(h - y)
+                p_r[1].append(np.argmax(cv2.matchTemplate(aux, t, cv2.TM_CCOEFF)))
+                color.append(imgL_raw[y, min(x+1, w - 1)])
+        X = cv2.triangulatePoints(self.Pl, self.Pr, np.array(p_l).astype(np.float), np.array(p_r).astype(np.float))
+        
+        print('Image processed in {} seconds'.format(time.time() - start_time))
+        print('Painting image.')
+        start_time = time.time()
+        
+        for x, c in zip(zip(*X / X[3]), color):
+            x = (np.array(x) / [200., 100.][self.SCALE - 1])
+            x[0] = x[0] + [-15, -25][self.SCALE - 1]
+            x[1] = x[1] + [5, 0][self.SCALE - 1]
+            x[2] = x[2] + [-5, 0][self.SCALE - 1]
+            self.point.plotPoint(list(x[:3]), list(c / 255.))
+            
+        print('Image painted in {} seconds'.format(time.time() - start_time))
+```
+
