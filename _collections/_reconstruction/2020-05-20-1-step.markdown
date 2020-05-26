@@ -32,8 +32,37 @@ algorithm=MyAlgorithm(cameraL, cameraR, publishPoint, n_sample, scale, block)
 ```
 
 
+
 ```python
-def algorithm(self):
+def skew(x):
+    return np.array([[0, -x[2], x[1]],
+                     [x[2], 0, -x[0]],
+                     [-x[1], x[0], 0]])
+
+def projmat_2_fmat(P1, P2):
+    p1 = np.linalg.inv(P1[:3, :3])
+    p2 = np.linalg.inv(P2[:3, :3])
+    p1_t = P1[:, 3]
+    p2_t = P2[:, 3]
+    e = skew(np.dot(p2, p2_t) - np.dot(p1, p1_t))
+    return np.dot(np.dot(p2.T, e), p1)
+
+def epi_range_from_image(epi_line, block, img):
+    z = np.zeros((block * 2, img.shape[1], img.shape[2]))
+    for i in np.arange(img.shape[1]):
+        y = int((epi_line[1] * i + epi_line[2]) / -epi_line[0])
+        z[:, i, :] = img[y-block:y+block, i]
+        
+    return z.astype(np.uint8)
+```
+
+
+```python
+    def epiline4point(self, point, cam):
+        return cv2.computeCorrespondEpilines(np.array((point)).reshape(-1, 1, 2), cam, self.F)[0][0]
+
+          
+    def algorithm(self):
         #GETTING THE IMAGES
         start_time = time.time()
         print('Procesing images...')
@@ -71,11 +100,13 @@ def algorithm(self):
                 if x < self.BLOCK or x > (w - self.BLOCK):
                     continue
                 t = imgL_raw[y - self.BLOCK:y + self.BLOCK, x - self.BLOCK:x + self.BLOCK]
-                aux = imgR_raw[y - self.BLOCK:y + self.BLOCK]
+                epi_line = self.epiline4point((y, x), 2)
+                aux = epi_range_from_image(epi_line, self.BLOCK, imgR_raw)
                 p_l[0].append(h - y)
                 p_l[1].append(x)
                 p_r[0].append(h - y)
-                p_r[1].append(np.argmax(cv2.matchTemplate(aux, t, cv2.TM_CCOEFF)))
+                x_r = np.argmax(cv2.matchTemplate(aux, t, cv2.TM_CCOEFF)) + self.BLOCK
+                p_r[1].append(x_r)
                 color.append(imgL_raw[y, min(x+1, w - 1)])
         X = cv2.triangulatePoints(self.Pl, self.Pr, np.array(p_l).astype(np.float), np.array(p_r).astype(np.float))
         
@@ -84,7 +115,7 @@ def algorithm(self):
         start_time = time.time()
         
         for x, c in zip(zip(*X / X[3]), color):
-            x = (np.array(x) / [200., 100.][self.SCALE - 1])
+            x = (np.array(x) / [300., 300.][self.SCALE - 1])
             x[0] = x[0] + [-15, -25][self.SCALE - 1]
             x[1] = x[1] + [5, 0][self.SCALE - 1]
             x[2] = x[2] + [-5, 0][self.SCALE - 1]
