@@ -93,3 +93,5 @@ def algorithm(self):
         print('Image painted in {} seconds'.format(time.time() - start_time))
 ```
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/TpPe20nCK9Y" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
