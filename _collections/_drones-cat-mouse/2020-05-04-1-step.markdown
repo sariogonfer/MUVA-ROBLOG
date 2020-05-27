@@ -6,4 +6,153 @@ image: /MUVA-ROBLOG/assets/images/drones-cat-mouse/main.jpg
 rating: 5
 ---
 
-Work in progress
+**Work in progress**
+
+In order to use a custom class to manage the drone, it is necessary to modify the file *my_solution.py*.
+
+```python
+def execute(event):
+        global pilot
+        reload(my_solution_functions)
+        pilot.__class__ = my_solution_functions.Pilot
+        pilot.execute()
+        set_image_filtered(pilot.image_filtered)
+        set_image_threshed(pilot.image_threshed)
+
+
+if __name__ == "__main__":
+	drone = DroneWrapper()
+        pilot = pilot.Pilot(drone)
+	...
+```
+
+Now, we have to create the class that drive the drone, the **Pilot**.
+
+**Pilot** class is implemented into the file *pilot.py*.
+
+```python
+import cv2
+import numpy as np
+
+
+value_min_HSV = np.array([100, 200, 0])
+value_max_HSV = np.array([130, 255, 255])
+kernel = np.ones((10, 10),np.uint8)
+
+
+def get_image_filtered(image_, bbox=None):
+    image = image_.copy()
+    if bbox:
+        top_left, bottom_right = (
+            (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3])
+        )
+        cv2.rectangle(image, top_left, bottom_right, (0, 255, 0), 2)
+
+    return image
+
+
+def get_mouse_bbox(th_image_):
+    try:
+        th_image = th_image_.copy()
+        aux = cv2.morphologyEx(th_image, cv2.MORPH_CLOSE, kernel)
+
+        _, contours, _ = cv2.findContours(
+            aux, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+        bbox = [cv2.boundingRect(c) for c in contours]
+        return bbox[0]
+    except:
+        return None
+
+
+def get_mouse_center(bbox):
+    center = (bbox[0]+ (bbox[2] / 2), bbox[1]+ (bbox[3] / 2))
+    print('BBOX: ' + str(bbox))
+    return center
+
+
+def get_error(bbox):
+    center = get_mouse_center(bbox)
+    proximity = bbox[3] - 25
+    return np.array((center[0] - 160, center[1] - 120, proximity))
+
+
+def calc_vel(error, K):
+    vx = -error[2] * K['x']
+    vy = -error[0] * K['y']
+    vz = -error[1] * K['z']
+    va = -error[0] * K['a']
+    vels = np.array((vx, vy, vz, va))
+    return vels
+
+
+def get_threshold_image(img):
+    th_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    th_image = cv2.inRange(th_image, value_min_HSV, value_max_HSV)
+
+    return th_image
+
+class Pilot(object):
+    def __init__(self, drone):
+        self.drone = drone
+        self._error = None
+        self.d_error = np.zeros(4)
+        self._searching_mouse = True
+        
+        self.Kp = {'x': 1., 'y': 1., 'z': 1., 'a': 1.}
+        self.Kd = {'x': 10., 'y': 10., 'z': 10, 'a': 0}
+
+    def execute(self):
+        self.img_frontal = self.drone.get_frontal_image()
+        self.img_ventral = self.drone.get_ventral_image()
+        th_image = get_threshold_image(self.img_frontal)
+        self.bbox = get_mouse_bbox(th_image)
+        if self.bbox is None:
+            self._searching_mouse = True
+            self.search_mouse()
+        else:      
+            self._searching_mouse = False
+            self.follow_mouse()
+    
+    def follow_mouse(self):
+        self.error = get_error(self.bbox)
+        self.drone.set_cmd_vel(*self.calc_vel())        
+    
+    def search_mouse(self):
+        th_image = get_threshold_image(self.img_ventral)
+        self.bbox = get_mouse_bbox(th_image)
+        if self.bbox is None:
+            self.drone.set_cmd_vel(0, 0, .5, 1)
+        else:
+            self.drone.set_cmd_vel(0, 0, -1, 0)
+            
+
+    def calc_vel(self):
+        print('DELTA ERROR' + str(self.d_error))
+        return calc_vel(self.error, self.Kp) + calc_vel(self.d_error, self.Kd)
+
+
+    @property
+    def error(self):
+        return self._error
+
+    @error.setter
+    def error(self, error):
+        if self.error is not None:
+            self.d_error = error - self.error
+        self._error = error
+
+    @property
+    def image_filtered(self):
+        if not self._searching_mouse:
+            return get_image_filtered(self.img_frontal, self.bbox)
+        else:
+            return get_image_filtered(self.img_frontal)
+
+    @property
+    def image_threshed(self):
+        if self._searching_mouse:
+            return get_image_filtered(self.img_ventral, self.bbox)
+        else:
+            return get_image_filtered(self.img_ventral)
+```

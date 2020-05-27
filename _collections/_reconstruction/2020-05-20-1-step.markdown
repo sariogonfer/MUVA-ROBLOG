@@ -6,16 +6,11 @@ image: /MUVA-ROBLOG/assets/images/3d-reconstruction/main.png
 rating: 5
 ---
 
+First, it is necesary to modify the file *3d_reconstruction.py*. This modification allows us to configure some of the variables used by the application. Theese variables are:
 
-```python
-def __init__(self, cameraL, cameraR, point, n_sample=None, scale=1, block=15):
-
-	...
-
-	self.N_SAMPLE = n_sample
-	self.SCALE = scale
-	self.BLOCK = block
-```
+* The number of samples used to draw the 3D scene.
+* The scalation applied to the original images.
+* The size of the block used to do the patches.
 
 ```python
 n_sample = None
@@ -30,6 +25,20 @@ block = int(sys.argv[4])
 
 algorithm=MyAlgorithm(cameraL, cameraR, publishPoint, n_sample, scale, block)
 ```
+
+Also, the *__init__* method of the **MyAlgorithm** class must be modified.
+
+```python
+def __init__(self, cameraL, cameraR, point, n_sample=None, scale=1, block=15):
+
+	...
+
+	self.N_SAMPLE = n_sample
+	self.SCALE = scale
+	self.BLOCK = block
+```
+
+Next, the code that processes the images and calculates the points of the 3D scenes. To do this, it is necessary to modify the *__init__* method to calculate the *Proyection Matrix* of the cameras and *Fundamental Matrix* of the system.
 
 
 
@@ -54,10 +63,18 @@ def epi_range_from_image(epi_line, block, img):
         z[:, i, :] = img[y-block:y+block, i]
         
     return z.astype(np.uint8)
-```
 
 
-```python
+class MyAlgorithm:
+    def __init__(self, cameraL, cameraR, point, n_sample=None, scale=1, block=15):
+
+	...
+        K = np.append(self.camLeftP.K, np.zeros([3, 1]), axis=1)
+        self.Pr = np.dot(K, np.array(self.camRightP.RT).reshape(4, 4)).astype(np.float)
+        self.Pl = np.dot(K, np.array(self.camLeftP.RT).reshape(4, 4)).astype(np.float)
+        self.F = projmat_2_fmat(self.Pl, self.Pr)
+        ...
+
     def epiline4point(self, point, cam):
         return cv2.computeCorrespondEpilines(np.array((point)).reshape(-1, 1, 2), cam, self.F)[0][0]
 
@@ -105,7 +122,7 @@ def epi_range_from_image(epi_line, block, img):
                 p_l[0].append(h - y)
                 p_l[1].append(x)
                 p_r[0].append(h - y)
-                x_r = np.argmax(cv2.matchTemplate(aux, t, cv2.TM_CCOEFF)) + self.BLOCK
+                x_r = np.argmax(cv2.matchTemplate(aux, t, cv2.TM_CCOEFF))
                 p_r[1].append(x_r)
                 color.append(imgL_raw[y, min(x+1, w - 1)])
         X = cv2.triangulatePoints(self.Pl, self.Pr, np.array(p_l).astype(np.float), np.array(p_r).astype(np.float))
